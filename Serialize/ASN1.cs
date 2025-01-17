@@ -1222,6 +1222,11 @@ public class ASN1
         return (x & 0x8) == 0x8;
     }
 
+    public static bool IS_APPLICATION_TAG(byte x)
+    {
+        return !IS_CONTEXT_SPECIFIC(x);
+    }
+
     public static bool IS_OPENING_TAG(byte x)
     {
         return (x & 0x07) == 6;
@@ -2153,6 +2158,12 @@ public class ASN1
         return IS_CONTEXT_SPECIFIC(buffer[offset]) && myTagNumber == tagNumber;
     }
 
+    public static bool decode_is_application_tag(byte[] buffer, int offset, BacnetApplicationTags tagNumber)
+    {
+        decode_tag_number(buffer, offset, out var myTagNumber);
+        return IS_APPLICATION_TAG(buffer[offset]) && myTagNumber == (byte)tagNumber;
+    }
+
     public static bool decode_is_opening_tag_number(byte[] buffer, int offset, byte tagNumber)
     {
         decode_tag_number(buffer, offset, out var myTagNumber);
@@ -2358,7 +2369,7 @@ public class ASN1
             return -1;
         len += decode_unsigned(buffer, offset + len, lenValueType, out value.TimeRemaining);
 
-        if (len < apduLen && IS_OPENING_TAG(buffer[offset + len]))
+        if (len < apduLen && !IS_CLOSING_TAG(buffer[offset + len]))
         {
             decode_tag_number_and_value(buffer, offset + len, out tagNumber, out lenValueType);
             if (tagNumber != 4)
@@ -2403,6 +2414,7 @@ public class ASN1
         {
             case BacnetPropertyState.BacnetPropertyStateTypes.BOOLEAN_VALUE:
                 value.state.boolean_value = lenValueType == 1;
+                sectionLength++;
                 break;
 
             case BacnetPropertyState.BacnetPropertyStateTypes.BINARY_VALUE:
